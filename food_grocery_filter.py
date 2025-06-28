@@ -12,9 +12,17 @@ def apply_food_filter(image_path, output_path):
     img_format = img.format
 
     # Preserve transparency
+    img = Image.open(image_path)
+    img_format = img.format
+
+    # Detect and safely extract alpha
     has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and 'transparency' in img.info)
-    alpha = img.getchannel("A") if has_alpha else None
-    img = img.convert("RGB")
+    if has_alpha:
+        img = img.convert("RGBA")
+        alpha = img.getchannel("A")
+        img = img.convert("RGB")
+    else:
+        alpha = None
 
     # Convert to OpenCV format
     cv_img = np.array(img)
