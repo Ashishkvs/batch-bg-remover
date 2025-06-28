@@ -1,44 +1,33 @@
 import os
-from PIL import Image
+import cv2
+import numpy as np
+from PIL import Image, ImageEnhance
 
-# Configuration
 input_folder = "input_images"
 output_folder = "output_images"
-max_width = 800
-max_height = 800
-
-# Supported formats
-supported_formats = ('.jpg', '.jpeg', '.png', '.bmp', '.webp')
-
-# Create output folder if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
 
-def resize_image(input_path, output_path, max_w, max_h):
-    with Image.open(input_path) as img:
-        # Preserve mode for transparency
-        img_format = img.format
-        img = img.convert("RGBA") if img.mode in ("P", "LA", "RGBA") else img.convert("RGB")
+def beautify_image(image_path, output_path):
+    img = Image.open(image_path)
+    img_format = img.format
 
-        # Resize while keeping aspect ratio
-        img.thumbnail((max_w, max_h), Image.LANCZOS)
+    # Handle transparency
+    has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and 'transparency' in img.info)
+    alpha = img.getchannel("A") if has_alpha else None
+    img = img.convert("RGB")
 
-        # Save with proper format and transparency
-        save_params = {}
-        if img_format == 'PNG':
-            save_params["compress_level"] = 1  # Faster compression
-        elif img_format == 'WEBP':
-            save_params["lossless"] = True
-        elif img_format in ['JPEG', 'JPG']:
-            save_params["quality"] = 95
+    # Convert to OpenCV format for more control
+    cv_img = np.array(img)
+    cv_img = cv2.cvtColor(cv_img, cv2.COLOR_RGB2BGR)
 
-        img.save(output_path, format=img_format, **save_params)
+    # --- AUTO BRIGHTNESS & CONTRAST ---
+    lab = cv2.cvtColor(cv_img, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    l = cv2.equalizeHist(l)
+    lab = cv2.merge((l, a, b))
+    cv_img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
-# Process each image
-for filename in os.listdir(input_folder):
-    if filename.lower().endswith(supported_formats):
-        input_path = os.path.join(input_folder, filename)
-        output_path = os.path.join(output_folder, filename)
-        resize_image(input_path, output_path, max_width, max_height)
-        print(f"Resized: {filename}")
+    # Convert back to PIL for enhancements
+    img = Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
-print("All images resized with transparency preserved.")
+    # --- COLOR & SHARPNESS ENHANCEME
