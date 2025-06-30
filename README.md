@@ -9,3 +9,12 @@ mv -f /home/omsent/temp-bg/* /home/omsent/dev-upload/app/vendor/images/vendor_15
 
 1751038391016_1000006982.png -> 
 1751038391016_1000006982.jpg
+
+
+
+## command
+python resize_bg.py
+// output -> input
+python remove_bg.py
+// output -> input
+python food_grocery_filter.py
